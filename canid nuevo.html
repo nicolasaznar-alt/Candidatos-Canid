@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canid — Gestión de Candidatos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0d0d;--surface:#161616;--surface2:#1f1f1f;--surface3:#282828;
+  --border:rgba(255,255,255,0.07);--border-mid:rgba(255,255,255,0.13);--border-hi:rgba(255,255,255,0.22);
+  --orange:#DC6B2F;--orange-dim:#b8551f;--orange-glow:rgba(220,107,47,0.18);--red-acc:#A4343A;
+  --white:#f5f5f5;--white-dim:#b0b0b0;--white-muted:#6e6e6e;--white-ghost:#3a3a3a;
+  --green:#3ecf8e;--blue:#4ea8de;--yellow:#f0b429;--red:#e05252;
+  --radius:12px;--radius-sm:8px;--radius-xs:5px;
+  --shadow:0 8px 40px rgba(0,0,0,0.6);--shadow-sm:0 3px 12px rgba(0,0,0,0.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;font-size:14px;line-height:1.65;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse 70% 40% at 5% 0%,rgba(220,107,47,0.06) 0%,transparent 55%),radial-gradient(ellipse 50% 30% at 95% 100%,rgba(164,52,58,0.05) 0%,transparent 50%);pointer-events:none;z-index:0}
+.skip-link{position:absolute;top:-100px;left:16px;background:var(--orange);color:#fff;padding:10px 20px;border-radius:0 0 var(--radius-sm) var(--radius-sm);font-weight:600;font-size:13px;z-index:9999;text-decoration:none;transition:top .2s}
+.skip-link:focus{top:0}
+#live-region{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border-mid);padding:0 36px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:13px;text-decoration:none}
+.brand-icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--orange) 0%,var(--red-acc) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(220,107,47,.45);flex-shrink:0;position:relative;overflow:hidden}
+.brand-icon::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18) 0%,transparent 55%)}
+.brand-icon span{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:#fff;position:relative;z-index:1}
+.brand-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--white);letter-spacing:.02em}
+.brand-sub{font-size:10px;color:var(--white-muted);letter-spacing:.12em;text-transform:uppercase;display:block}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* DRIVE STATUS */
+.drive-status{display:flex;align-items:center;gap:7px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border-mid);color:var(--white-muted);background:var(--surface2)}
+.drive-status .ds-dot{width:6px;height:6px;border-radius:50%;background:var(--white-ghost);flex-shrink:0}
+.drive-status.connected{color:var(--green);background:rgba(62,207,142,.08);border-color:rgba(62,207,142,.25)}
+.drive-status.connected .ds-dot{background:var(--green);animation:dot-pulse 2.2s ease-in-out infinite}
+.drive-status.syncing{color:var(--yellow);background:rgba(240,180,41,.08);border-color:rgba(240,180,41,.25)}
+.drive-status.syncing .ds-dot{background:var(--yellow);animation:dot-pulse .8s ease-in-out infinite}
+.drive-status.error{color:var(--red);background:rgba(224,82,82,.08);border-color:rgba(224,82,82,.25)}
+.drive-status.error .ds-dot{background:var(--red)}
+@keyframes dot-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.75)}}
+
+.mode-pill{display:flex;align-items:center;gap:7px;padding:4px 13px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.mode-pill .dot{width:6px;height:6px;border-radius:50%;animation:dot-pulse 2.2s ease-in-out infinite}
+.mode-pill.reader{background:rgba(78,168,222,.1);color:var(--blue);border:1px solid rgba(78,168,222,.25)}
+.mode-pill.reader .dot{background:var(--blue)}
+.mode-pill.admin{background:rgba(220,107,47,.12);color:var(--orange);border:1px solid rgba(220,107,47,.3)}
+.mode-pill.admin .dot{background:var(--orange)}
+
+/* BOTONES */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 20px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s ease;text-decoration:none;line-height:1;white-space:nowrap;position:relative;overflow:hidden}
+.btn:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.btn-primary{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dim) 100%);color:#fff;box-shadow:0 3px 14px rgba(220,107,47,.35)}
+.btn-primary:hover{box-shadow:0 5px 22px rgba(220,107,47,.5);filter:brightness(1.06)}
+.btn-google{background:#fff;color:#3c3c3c;border:1px solid #ddd;font-weight:600}
+.btn-google:hover{background:#f8f8f8;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.btn-google img{width:16px;height:16px}
+.btn-secondary{background:var(--surface2);color:var(--white-dim);border:1px solid var(--border-mid)}
+.btn-secondary:hover{background:var(--surface3);border-color:var(--border-hi);color:var(--white)}
+.btn-ghost{background:transparent;color:var(--white-muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--white-dim);border-color:var(--border-mid)}
+.btn-danger{background:rgba(224,82,82,.1);color:var(--red);border:1px solid rgba(224,82,82,.25)}
+.btn-danger:hover{background:rgba(224,82,82,.2)}
+.btn-sm{padding:7px 14px;font-size:12px}
+
+/* MODALES */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(6px);padding:20px;animation:fade-in .18s ease}
+.modal-bg[hidden]{display:none}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes slide-up{from{opacity:0;transform:translateY(20px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes card-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.modal-box{background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--radius);padding:40px;width:100%;max-width:440px;box-shadow:var(--shadow);animation:slide-up .22s ease;position:relative;overflow:hidden}
+.modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),var(--red-acc))}
+.modal-box h2{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;color:var(--white);margin-bottom:7px}
+.modal-box p{color:var(--white-muted);font-size:13px;margin-bottom:20px;line-height:1.6}
+.modal-actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.modal-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.confirm-box{background:var(--surface);border:1px solid rgba(224,82,82,.3);border-radius:var(--radius);padding:36px;width:100%;max-width:390px;box-shadow:var(--shadow);animation:slide-up .22s ease;position:relative;overflow:hidden}
+.confirm-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)}
+.confirm-box h2{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--white);margin-bottom:8px}
+.confirm-box p{color:var(--white-muted);font-size:13px;margin-bottom:22px;line-height:1.6}
+.confirm-actions{display:flex;gap:10px}
+
+/* MAIN */
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 28px 80px}
+.page-hero{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:18px;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:7px}
+.hero-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1.05;color:var(--white);letter-spacing:-.01em}
+.hero-title em{font-style:normal;color:var(--orange)}
+
+/* STATS */
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 20px;display:flex;flex-direction:column;gap:2px;min-width:110px;transition:border-color .2s,transform .2s;position:relative;overflow:hidden}
+.stat-chip:hover{border-color:var(--border-mid);transform:translateY(-1px)}
+.stat-chip::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.stat-chip.total::after{background:linear-gradient(90deg,var(--orange),var(--red-acc))}
+.stat-chip.eval::after{background:var(--blue)}
+.stat-chip.adv::after{background:var(--green)}
+.stat-num{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1}
+.c-orange{color:var(--orange)}.c-blue{color:var(--blue)}.c-green{color:var(--green)}
+.stat-label{font-size:11px;color:var(--white-muted)}
+
+/* TOOLBAR */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:24px}
+.toolbar-left{display:flex;gap:9px;flex:1;flex-wrap:wrap}
+.toolbar-right{display:flex;gap:9px;flex-shrink:0}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:340px}
+.search-wrap input{background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--radius-sm);color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:9px 13px 9px 36px;width:100%;transition:border-color .15s,box-shadow .15s}
+.search-wrap input::placeholder{color:var(--white-ghost)}
+.search-wrap input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-glow)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--white-muted);pointer-events:none;font-size:15px}
+.filter-select{background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--radius-sm);color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:9px 34px 9px 13px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236e6e6e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-color:var(--surface)}
+.filter-select:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-glow)}
+.filter-select option{background:var(--surface2)}
+
+/* CAMPOS */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--white-muted)}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border-mid);border-radius:var(--radius-sm);color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:10px 13px;width:100%;transition:border-color .15s,box-shadow .15s;line-height:1.5}
+.field input::placeholder,.field textarea::placeholder{color:var(--white-ghost)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-glow)}
+.field textarea{resize:vertical;min-height:96px}
+.field select{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236e6e6e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-color:var(--surface2);padding-right:34px}
+.field select option{background:var(--surface2)}
+.req{color:var(--orange);margin-left:2px}
+
+/* FORM PANEL */
+.form-panel{background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--radius);padding:32px;margin-bottom:28px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;animation:slide-up .22s ease}
+.form-panel[hidden]{display:none}
+.form-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),var(--red-acc))}
+.form-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.form-panel-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--white)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.field-full{grid-column:1/-1}
+.form-actions{display:flex;gap:10px;margin-top:24px;padding-top:22px;border-top:1px solid var(--border);flex-wrap:wrap}
+
+/* EMPTY / LOADING */
+.empty-state{text-align:center;padding:72px 24px}
+.empty-state p{color:var(--white-muted);font-size:15px;margin-top:12px}
+.empty-icon{font-size:42px;opacity:.25}
+.loading-state{text-align:center;padding:72px 24px}
+.loading-state p{color:var(--white-muted);font-size:14px;margin-top:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--border-mid);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CARDS */
+.candidates-list{display:flex;flex-direction:column;gap:12px}
+.c-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .18s,box-shadow .18s,transform .18s;box-shadow:0 2px 10px rgba(0,0,0,.3);animation:card-in .3s ease both}
+.c-card:hover{border-color:var(--border-mid);box-shadow:0 6px 28px rgba(0,0,0,.5);transform:translateY(-1px)}
+.c-card-btn{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px;gap:14px;cursor:pointer;border:none;background:transparent;width:100%;text-align:left;color:inherit;font-family:inherit;transition:background .15s}
+.c-card-btn:hover{background:rgba(255,255,255,.025)}
+.c-card-btn:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
+.c-card-identity{display:flex;align-items:flex-start;gap:14px;flex:1;min-width:0}
+.avatar{width:44px;height:44px;border-radius:10px;background:var(--surface3);border:1px solid var(--border-mid);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--orange);flex-shrink:0}
+.c-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white);margin-bottom:5px;line-height:1.2}
+.c-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--white-muted)}
+.c-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.sbadge{padding:3px 11px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.s-ev{background:rgba(78,168,222,.1);color:var(--blue);border:1px solid rgba(78,168,222,.25)}
+.s-sg{background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.25)}
+.s-ds{background:rgba(224,82,82,.08);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+.s-pa{background:rgba(240,180,41,.1);color:var(--yellow);border:1px solid rgba(240,180,41,.22)}
+.chevron{color:var(--white-muted);font-size:10px;transition:transform .22s ease}
+.is-open .chevron{transform:rotate(180deg)}
+.c-card-body{border-top:1px solid var(--border);padding:24px;animation:fade-in .18s ease}
+.c-card-body[hidden]{display:none}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-bottom:20px}
+.info-block{display:flex;flex-direction:column;gap:4px}
+.info-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted)}
+.info-val{font-size:13px;color:var(--white-dim);line-height:1.5}
+.info-val.nota-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 13px;font-size:12px;color:var(--white-muted);white-space:pre-wrap;line-height:1.6}
+.pdf-link{display:inline-flex;align-items:center;gap:6px;background:rgba(220,107,47,.1);color:var(--orange);border:1px solid rgba(220,107,47,.25);border-radius:var(--radius-xs);padding:5px 11px;font-size:12px;font-weight:600;text-decoration:none;transition:background .15s}
+.pdf-link:hover{background:rgba(220,107,47,.2)}
+.pdf-link:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+hr.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.ext-notes{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px}
+.ext-notes h4{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);margin-bottom:12px}
+.note-entry{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:11px 13px;margin-bottom:9px}
+.note-entry-meta{font-size:11px;color:var(--white-muted);margin-bottom:4px}
+.note-entry-text{font-size:12px;color:var(--white-dim);line-height:1.55;white-space:pre-wrap}
+.add-note{margin-top:12px}
+.add-note input[type="text"]{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--white);font-family:'Inter',sans-serif;font-size:12px;padding:8px 12px;width:100%;margin-bottom:7px;transition:border-color .15s}
+.add-note input[type="text"]:focus{outline:none;border-color:var(--orange)}
+.add-note textarea{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--white);font-family:'Inter',sans-serif;font-size:12px;padding:9px 12px;width:100%;min-height:68px;resize:vertical;margin-bottom:7px;line-height:1.55;transition:border-color .15s}
+.add-note textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-glow)}
+.card-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+.modified-date{font-size:10px;color:var(--white-ghost);margin-top:5px}
+
+/* TOAST */
+#toast{position:fixed;bottom:26px;right:26px;background:var(--surface2);border:1px solid var(--border-mid);border-radius:var(--radius-sm);padding:13px 18px;font-size:13px;font-weight:500;color:var(--white);box-shadow:var(--shadow);z-index:9000;transform:translateY(70px);opacity:0;transition:transform .23s ease,opacity .23s ease;max-width:300px;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-left:3px solid var(--green)}
+#toast.error{border-left:3px solid var(--red)}
+#toast.info{border-left:3px solid var(--orange)}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--white-ghost);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--white-muted)}
+@media(max-width:580px){header{padding:0 14px}main{padding:24px 14px 60px}.form-panel{padding:20px 16px}.c-card-btn{padding:16px}.c-card-body{padding:16px}.hero-title{font-size:26px}}
+</style>
+</head>
+<body>
+
+<a href="#main-content" class="skip-link">Ir al contenido principal</a>
+<div id="live-region" aria-live="polite" aria-atomic="true" role="status"></div>
+
+<!-- MODAL LOGIN ADMIN -->
+<div id="modal-login" class="modal-bg" role="dialog" aria-modal="true" aria-labelledby="login-title" hidden>
+  <div class="modal-box">
+    <h2 id="login-title">Acceso de administrador</h2>
+    <p>Ingresá la contraseña para habilitar la edición y carga de candidatos.</p>
+    <div class="field">
+      <label for="pwd-input">Contraseña</label>
+      <input type="password" id="pwd-input" autocomplete="current-password" aria-describedby="pwd-err"/>
+      <span id="pwd-err" role="alert" style="color:var(--red);font-size:12px;min-height:16px;display:block;margin-top:2px;"></span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="submitLogin()">Ingresar</button>
+      <button class="btn btn-ghost" onclick="closeLogin()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINACIÓN -->
+<div id="modal-confirm" class="modal-bg" role="dialog" aria-modal="true" aria-labelledby="confirm-title" hidden>
+  <div class="confirm-box">
+    <h2 id="confirm-title">Eliminar candidato</h2>
+    <p id="confirm-desc">Esta acción es permanente.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-danger" id="confirm-yes-btn" onclick="confirmDelete()">Sí, eliminar</button>
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GOOGLE AUTH -->
+<div id="modal-google" class="modal-bg" role="dialog" aria-modal="true" aria-labelledby="google-title" hidden>
+  <div class="modal-box">
+    <h2 id="google-title">Conectar con Google Drive</h2>
+    <p>Para acceder a los candidatos, conectate con tu cuenta <strong style="color:var(--white)">@canid.io</strong>. Los datos se guardan en tu Google Drive y son accesibles desde cualquier computadora del equipo.</p>
+    <div class="modal-actions">
+      <button class="btn btn-google" onclick="startGoogleAuth()" aria-label="Iniciar sesión con Google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" aria-hidden="true"/>
+        Continuar con Google
+      </button>
+    </div>
+    <hr class="modal-divider">
+    <p style="font-size:11px;color:var(--white-muted);margin-bottom:0;">Solo se permite el acceso con cuentas del dominio @canid.io.</p>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header role="banner">
+  <div class="brand" aria-label="Canid - Gestión de candidatos">
+    <div class="brand-icon" aria-hidden="true"><span>C</span></div>
+    <div>
+      <span class="brand-name">Canid</span>
+      <span class="brand-sub">Gestión de candidatos</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="drive-status" class="drive-status" aria-live="polite" aria-label="Estado de conexión con Google Drive">
+      <span class="ds-dot" aria-hidden="true"></span>
+      <span id="drive-label">Sin conectar</span>
+    </div>
+    <span id="mode-pill" class="mode-pill reader" aria-live="polite" aria-label="Modo de acceso actual: lectura">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="mode-label">Modo lectura</span>
+    </span>
+    <button id="admin-btn" class="btn btn-secondary btn-sm" onclick="toggleAdmin()">Administrador</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main id="main-content">
+  <div class="page-hero">
+    <div>
+      <p class="hero-eyebrow">Recursos humanos</p>
+      <h1 class="hero-title">Panel de <em>candidatos</em></h1>
+    </div>
+  </div>
+
+  <div class="stats-row" role="region" aria-label="Resumen de candidatos">
+    <div class="stat-chip total"><span class="stat-num c-orange" id="stat-total">0</span><span class="stat-label">registrados</span></div>
+    <div class="stat-chip eval"><span class="stat-num c-blue" id="stat-eval">0</span><span class="stat-label">en evaluación</span></div>
+    <div class="stat-chip adv"><span class="stat-num c-green" id="stat-adv">0</span><span class="stat-label">avanzan</span></div>
+  </div>
+
+  <div class="toolbar" role="search" aria-label="Buscar y filtrar candidatos">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input type="search" id="search-input" placeholder="Buscar por nombre…" aria-label="Buscar candidato por nombre" oninput="renderList()"/>
+      </div>
+      <select class="filter-select" id="filter-status" aria-label="Filtrar por estado" onchange="renderList()">
+        <option value="">Todos los estados</option>
+        <option value="evaluacion">En evaluación</option>
+        <option value="segunda">Avanza a segunda entrevista</option>
+        <option value="descartado">Descartado</option>
+        <option value="pausado">En pausa</option>
+      </select>
+    </div>
+    <div class="toolbar-right">
+      <button id="add-btn" class="btn btn-primary" onclick="openForm()" hidden aria-label="Agregar nuevo candidato">+ Nuevo candidato</button>
+    </div>
+  </div>
+
+  <section id="form-panel" class="form-panel" hidden aria-labelledby="form-title">
+    <div class="form-panel-head">
+      <h2 class="form-panel-title" id="form-title">Nuevo candidato</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeForm()" aria-label="Cerrar formulario">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label for="f-nombre">Nombre y apellido <span class="req" aria-hidden="true">*</span></label><input type="text" id="f-nombre" required aria-required="true" autocomplete="name"/></div>
+      <div class="field"><label for="f-localidad">Localidad <span class="req" aria-hidden="true">*</span></label><input type="text" id="f-localidad" required aria-required="true"/></div>
+      <div class="field"><label for="f-telefono">Teléfono <span class="req" aria-hidden="true">*</span></label><input type="tel" id="f-telefono" required aria-required="true" autocomplete="tel"/></div>
+      <div class="field"><label for="f-fecha">Fecha de entrevista <span class="req" aria-hidden="true">*</span></label><input type="date" id="f-fecha" required aria-required="true"/></div>
+      <div class="field">
+        <label for="f-disp-form">Disponibilidad en formulario</label>
+        <select id="f-disp-form"><option value="">Sin datos</option><option value="Mañana">Mañana</option><option value="Tarde">Tarde</option><option value="Jornada completa">Jornada completa</option></select>
+      </div>
+      <div class="field">
+        <label for="f-disp-llamada">Disponibilidad en primera entrevista</label>
+        <select id="f-disp-llamada"><option value="">Sin datos</option><option value="Se alinea con el formulario">Se alinea con el formulario</option><option value="Difiere del formulario">Difiere del formulario</option></select>
+      </div>
+      <div class="field field-full"><label for="f-disp-detalle">Aclaración de disponibilidad (opcional)</label><textarea id="f-disp-detalle" placeholder="Detallá diferencias o aclaraciones sobre la disponibilidad horaria…" style="min-height:72px;"></textarea></div>
+      <div class="field">
+        <label for="f-estado">Estado en el proceso</label>
+        <select id="f-estado"><option value="evaluacion">En evaluación</option><option value="segunda">Avanza a segunda entrevista</option><option value="pausado">En pausa</option><option value="descartado">Descartado</option></select>
+      </div>
+      <div class="field field-full"><label for="f-notas">Notas de la entrevista</label><textarea id="f-notas" placeholder="Perfil, impresión general, aspectos destacados, observaciones…" style="min-height:110px;"></textarea></div>
+      <div class="field field-full">
+        <label for="f-cv">Currículum (PDF, máx. 4 MB)</label>
+        <input type="file" id="f-cv" accept=".pdf" aria-label="Subir currículum en formato PDF"/>
+        <span id="f-cv-status" style="font-size:11px;color:var(--white-muted);margin-top:3px;min-height:16px;display:block;"></span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveCandidate()">Guardar candidato</button>
+      <button class="btn btn-ghost" onclick="closeForm()">Cancelar</button>
+    </div>
+  </section>
+
+  <section aria-label="Lista de candidatos">
+    <div id="candidates-list" class="candidates-list" aria-live="polite"></div>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+<!-- GOOGLE API -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────
+const CLIENT_ID   = '833203659656-4i9pfp5d8cqoa8pukandtv88k5lb616j.apps.googleusercontent.com';
+const SCOPES      = 'https://www.googleapis.com/auth/drive.file';
+const FOLDER_NAME = 'Asistente Candidatos Canid';
+const DATA_FILE   = 'candidatos.json';
+const CV_FOLDER   = 'CVs';
+const ADMIN_PWD   = 'admin.canid.io';
+
+// ── ESTADO ─────────────────────────────────────────────────────
+let candidates  = [];
+let isAdmin     = false;
+let editingId   = null;
+let deletingId  = null;
+let expanded    = new Set();
+let accessToken = null;
+let folderId    = null;
+let cvFolderId  = null;
+let dataFileId  = null;
+let isSyncing   = false;
+
+// ── SONIDOS ────────────────────────────────────────────────────
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    const t = AC.currentTime;
+    if (type==='click'){o.type='sine';o.frequency.setValueAtTime(880,t);g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.08);o.start(t);o.stop(t+0.08);}
+    else if(type==='success'){o.type='sine';o.frequency.setValueAtTime(660,t);o.frequency.setValueAtTime(880,t+0.07);g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.25);o.start(t);o.stop(t+0.25);}
+    else if(type==='error'){o.type='sawtooth';o.frequency.setValueAtTime(200,t);g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);o.start(t);o.stop(t+0.18);}
+    else if(type==='sweep'){o.type='sine';o.frequency.setValueAtTime(400,t);o.frequency.linearRampToValueAtTime(700,t+0.12);g.gain.setValueAtTime(0.04,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);o.start(t);o.stop(t+0.2);}
+    else if(type==='delete'){o.type='sine';o.frequency.setValueAtTime(440,t);o.frequency.linearRampToValueAtTime(200,t+0.18);g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);o.start(t);o.stop(t+0.22);}
+  } catch(e){}
+}
+
+// ── ACCESIBILIDAD ──────────────────────────────────────────────
+function announce(msg){const r=document.getElementById('live-region');r.textContent='';requestAnimationFrame(()=>{r.textContent=msg;});}
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`show ${type}`;announce(msg);
+  if(type==='success')playSound('success');
+  else if(type==='error')playSound('error');
+  else playSound('click');
+  setTimeout(()=>{t.className='';},3400);
+}
+
+// ── DRIVE STATUS UI ────────────────────────────────────────────
+function setDriveStatus(state, label) {
+  const el = document.getElementById('drive-status');
+  const lb = document.getElementById('drive-label');
+  el.className = `drive-status ${state}`;
+  lb.textContent = label;
+  el.setAttribute('aria-label', `Estado de conexión con Google Drive: ${label}`);
+}
+
+// ── GOOGLE AUTH ────────────────────────────────────────────────
+function startGoogleAuth() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Error al conectar con Google.', 'error'); return; }
+      accessToken = resp.access_token;
+      document.getElementById('modal-google').hidden = true;
+      setDriveStatus('syncing', 'Conectando…');
+      announce('Conectando con Google Drive.');
+      await initDriveStructure();
+      await loadFromDrive();
+    }
+  });
+  client.requestAccessToken();
+}
+
+// ── ESTRUCTURA EN DRIVE ────────────────────────────────────────
+async function driveRequest(method, endpoint, body, isUpload) {
+  const base = isUpload
+    ? 'https://www.googleapis.com/upload/drive/v3'
+    : 'https://www.googleapis.com/drive/v3';
+  const res = await fetch(`${base}${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      ...(body && !isUpload ? {'Content-Type': 'application/json'} : {})
+    },
+    body: body ? (isUpload ? body : JSON.stringify(body)) : undefined
+  });
+  if (!res.ok) throw new Error(`Drive API error: ${res.status}`);
+  return res.json();
+}
+
+async function findOrCreateFolder(name, parentId) {
+  const q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false${parentId ? ` and '${parentId}' in parents` : ''}`;
+  const res = await driveRequest('GET', `/files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
+  if (res.files && res.files.length > 0) return res.files[0].id;
+  const body = { name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? {parents:[parentId]} : {}) };
+  const created = await driveRequest('POST', '/files', body);
+  return created.id;
+}
+
+async function findFile(name, parentId) {
+  const q = `name='${name}' and trashed=false and '${parentId}' in parents`;
+  const res = await driveRequest('GET', `/files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
+  return (res.files && res.files.length > 0) ? res.files[0].id : null;
+}
+
+async function initDriveStructure() {
+  folderId   = await findOrCreateFolder(FOLDER_NAME, null);
+  cvFolderId = await findOrCreateFolder(CV_FOLDER, folderId);
+  dataFileId = await findFile(DATA_FILE, folderId);
+}
+
+async function loadFromDrive() {
+  setDriveStatus('syncing', 'Cargando datos…');
+  showLoading();
+  try {
+    if (!dataFileId) {
+      candidates = [];
+      await saveToDrive();
+    } else {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${dataFileId}?alt=media`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      candidates = await res.json();
+    }
+    setDriveStatus('connected', 'Drive conectado');
+    showToast('Datos cargados correctamente.', 'success');
+  } catch(e) {
+    setDriveStatus('error', 'Error de conexión');
+    showToast('No se pudieron cargar los datos desde Drive.', 'error');
+  }
+  // Nunca mostrar el botón de agregar al conectar con Google.
+  // Solo se habilita si además se ingresó la contraseña de administrador.
+  document.getElementById('add-btn').hidden = true;
+  renderList();
+}
+
+async function saveToDrive() {
+  if (!accessToken || !folderId) return;
+  isSyncing = true;
+  setDriveStatus('syncing', 'Guardando…');
+  try {
+    const content = JSON.stringify(candidates);
+    const blob    = new Blob([content], {type:'application/json'});
+    if (dataFileId) {
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${dataFileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: content
+      });
+    } else {
+      const meta = { name: DATA_FILE, parents: [folderId] };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
+      form.append('file', blob);
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        body: form
+      });
+      const data = await res.json();
+      dataFileId = data.id;
+    }
+    setDriveStatus('connected', 'Drive conectado');
+  } catch(e) {
+    setDriveStatus('error', 'Error al guardar');
+    showToast('No se pudo guardar en Drive. Verificá tu conexión.', 'error');
+  }
+  isSyncing = false;
+}
+
+async function uploadCVToDrive(file, candidateName) {
+  const safeName = candidateName.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').trim();
+  const fileName = `CV - ${safeName}.pdf`;
+  const meta = { name: fileName, parents: [cvFolderId] };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
+  form.append('file', file);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+    body: form
+  });
+  return res.json();
+}
+
+// ── AUTH ADMIN ─────────────────────────────────────────────────
+function toggleAdmin() {
+  playSound('click');
+  if (isAdmin) { isAdmin = false; updateAdminUI(); showToast('Sesión cerrada.', 'info'); return; }
+  document.getElementById('modal-login').hidden = false;
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('pwd-err').textContent = '';
+  requestAnimationFrame(() => document.getElementById('pwd-input').focus());
+}
+function submitLogin() {
+  if (document.getElementById('pwd-input').value === ADMIN_PWD) {
+    isAdmin = true;
+    document.getElementById('modal-login').hidden = true;
+    updateAdminUI(); showToast('Modo administrador activado.', 'success'); renderList();
+  } else {
+    document.getElementById('pwd-err').textContent = 'Contraseña incorrecta.';
+    document.getElementById('pwd-input').focus(); playSound('error');
+  }
+}
+function closeLogin() { document.getElementById('modal-login').hidden = true; document.getElementById('admin-btn').focus(); }
+function updateAdminUI() {
+  const pill=document.getElementById('mode-pill'),lbl=document.getElementById('mode-label');
+  const btn=document.getElementById('admin-btn'),add=document.getElementById('add-btn');
+  if (isAdmin) {
+    pill.className='mode-pill admin'; lbl.textContent='Administrador';
+    pill.setAttribute('aria-label','Modo de acceso actual: administrador');
+    btn.textContent='Cerrar sesión'; add.hidden=false;
+  } else {
+    pill.className='mode-pill reader'; lbl.textContent='Modo lectura';
+    pill.setAttribute('aria-label','Modo de acceso actual: lectura');
+    btn.textContent='Administrador'; add.hidden=true; closeForm();
+  }
+  renderList();
+}
+
+document.getElementById('pwd-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitLogin();if(e.key==='Escape')closeLogin();});
+document.getElementById('modal-login').addEventListener('keydown',e=>{if(e.key==='Escape')closeLogin();});
+document.getElementById('modal-confirm').addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm();});
+
+// ── FORMULARIO ─────────────────────────────────────────────────
+function openForm(id=null) {
+  if (!accessToken) { showToast('Primero conectate con Google Drive.', 'error'); return; }
+  if (!isAdmin) { showToast('Necesitás ingresar como administrador para esta acción.', 'error'); return; }
+  playSound('sweep'); editingId=id;
+  const cvStatus=document.getElementById('f-cv-status');
+  document.getElementById('form-title').textContent = id ? 'Editar candidato' : 'Nuevo candidato';
+  if (id) {
+    const c=candidates.find(x=>x.id===id); if(!c) return;
+    document.getElementById('f-nombre').value       = c.nombre||'';
+    document.getElementById('f-localidad').value    = c.localidad||'';
+    document.getElementById('f-telefono').value     = c.telefono||'';
+    document.getElementById('f-fecha').value        = c.fecha||'';
+    document.getElementById('f-disp-form').value    = c.dispForm||'';
+    document.getElementById('f-disp-llamada').value = c.dispLlamada||'';
+    document.getElementById('f-disp-detalle').value = c.dispDetalle||'';
+    document.getElementById('f-estado').value       = c.estado||'evaluacion';
+    document.getElementById('f-notas').value        = c.notas||'';
+    document.getElementById('f-cv').value           = '';
+    cvStatus.textContent = c.cvName ? `CV actual: ${c.cvName}` : '';
+  } else {
+    ['f-nombre','f-localidad','f-telefono','f-notas','f-disp-detalle'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('f-fecha').value='';
+    document.getElementById('f-disp-form').value='';
+    document.getElementById('f-disp-llamada').value='';
+    document.getElementById('f-estado').value='evaluacion';
+    document.getElementById('f-cv').value=''; cvStatus.textContent='';
+  }
+  document.getElementById('form-panel').hidden=false;
+  requestAnimationFrame(()=>document.getElementById('f-nombre').focus());
+  announce(id?'Formulario de edición abierto.':'Formulario de nuevo candidato abierto.');
+}
+function closeForm() {
+  document.getElementById('form-panel').hidden=true; editingId=null;
+  document.getElementById('add-btn').focus(); announce('Formulario cerrado.');
+}
+
+async function saveCandidate() {
+  const nombre    = document.getElementById('f-nombre').value.trim();
+  const localidad = document.getElementById('f-localidad').value.trim();
+  const telefono  = document.getElementById('f-telefono').value.trim();
+  const fecha     = document.getElementById('f-fecha').value;
+  if (!nombre||!localidad||!telefono||!fecha) {
+    showToast('Completá nombre, localidad, teléfono y fecha.','error');
+    if(!nombre) document.getElementById('f-nombre').focus(); return;
+  }
+  const cvFile = document.getElementById('f-cv').files[0];
+  if (cvFile) {
+    if (cvFile.type!=='application/pdf') { showToast('El archivo debe ser un PDF.','error'); return; }
+    if (cvFile.size>4*1024*1024) { showToast('El PDF supera los 4 MB.','error'); return; }
+  }
+  const saveBtn = document.querySelector('.form-actions .btn-primary');
+  saveBtn.disabled=true; saveBtn.textContent='Guardando…';
+  const now = new Date().toISOString();
+  let cvData = null;
+  if (cvFile && cvFolderId) {
+    try {
+      const uploaded = await uploadCVToDrive(cvFile, nombre);
+      cvData = { id: uploaded.id, name: cvFile.name, url: uploaded.webViewLink };
+    } catch(e) { showToast('No se pudo subir el CV. El candidato se guarda sin él.','error'); }
+  }
+  if (editingId) {
+    const idx=candidates.findIndex(x=>x.id===editingId);
+    if (idx!==-1) candidates[idx]={...candidates[idx],nombre,localidad,telefono,fecha,
+      dispForm:document.getElementById('f-disp-form').value,
+      dispLlamada:document.getElementById('f-disp-llamada').value,
+      dispDetalle:document.getElementById('f-disp-detalle').value.trim(),
+      estado:document.getElementById('f-estado').value,
+      notas:document.getElementById('f-notas').value.trim(),
+      modified:now,...(cvData?{cvId:cvData.id,cvName:cvData.name,cvUrl:cvData.url}:{})};
+    showToast(`${nombre} actualizado.`,'success');
+  } else {
+    candidates.unshift({
+      id:'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      nombre,localidad,telefono,fecha,
+      dispForm:document.getElementById('f-disp-form').value,
+      dispLlamada:document.getElementById('f-disp-llamada').value,
+      dispDetalle:document.getElementById('f-disp-detalle').value.trim(),
+      estado:document.getElementById('f-estado').value,
+      notas:document.getElementById('f-notas').value.trim(),
+      cvId:cvData?cvData.id:null,cvName:cvData?cvData.name:null,cvUrl:cvData?cvData.url:null,
+      thirdPartyNotes:[],created:now,modified:now
+    });
+    showToast(`${nombre} registrado.`,'success');
+  }
+  await saveToDrive();
+  saveBtn.disabled=false; saveBtn.textContent='Guardar candidato';
+  closeForm(); renderList();
+}
+
+// ── ELIMINACIÓN ────────────────────────────────────────────────
+function askDelete(id) {
+  playSound('click'); deletingId=id;
+  const c=candidates.find(x=>x.id===id);
+  document.getElementById('confirm-desc').textContent=
+    `Estás por eliminar el registro de ${c?c.nombre:'este candidato'}. La acción no se puede deshacer.`;
+  document.getElementById('modal-confirm').hidden=false;
+  requestAnimationFrame(()=>document.getElementById('confirm-yes-btn').focus());
+  announce(`Confirmación requerida para eliminar a ${c?c.nombre:'este candidato'}.`);
+}
+async function confirmDelete() {
+  const c=candidates.find(x=>x.id===deletingId);
+  candidates=candidates.filter(x=>x.id!==deletingId);
+  closeConfirm(); await saveToDrive(); renderList();
+  playSound('delete');
+  showToast(`${c?c.nombre:'Candidato'} eliminado.`,'info');
+}
+function closeConfirm() { document.getElementById('modal-confirm').hidden=true; deletingId=null; }
+
+// ── NOTAS EXTERNAS ─────────────────────────────────────────────
+async function addNote(id) {
+  const ta=document.getElementById(`note-ta-${id}`);
+  const au=document.getElementById(`note-au-${id}`);
+  const text=ta.value.trim();
+  if (!text) { announce('Escribí una nota antes de enviarla.'); ta.focus(); return; }
+  const idx=candidates.findIndex(x=>x.id===id); if(idx===-1) return;
+  if (!candidates[idx].thirdPartyNotes) candidates[idx].thirdPartyNotes=[];
+  candidates[idx].thirdPartyNotes.push({
+    text, author:au.value.trim()||'Sin identificar',
+    date:new Date().toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  });
+  candidates[idx].modified=new Date().toISOString();
+  ta.value=''; au.value='';
+  await saveToDrive(); renderList(); expanded.add(id);
+  showToast('Nota agregada.','success');
+}
+
+// ── TOGGLE CARD ────────────────────────────────────────────────
+function toggleCard(id) {
+  playSound('sweep');
+  if(expanded.has(id)) expanded.delete(id); else expanded.add(id);
+  renderList();
+}
+
+// ── STATS ──────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-total').textContent=candidates.length;
+  document.getElementById('stat-eval').textContent=candidates.filter(c=>c.estado==='evaluacion').length;
+  document.getElementById('stat-adv').textContent=candidates.filter(c=>c.estado==='segunda').length;
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+function initials(n){return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function sLabel(s){return{evaluacion:'En evaluación',segunda:'Avanza a segunda entrevista',descartado:'Descartado',pausado:'En pausa'}[s]||s;}
+function sClass(s){return{evaluacion:'s-ev',segunda:'s-sg',descartado:'s-ds',pausado:'s-pa'}[s]||'';}
+function fDate(d){if(!d)return'—';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function fMod(iso){if(!iso)return'';return new Date(iso).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── LOADING ────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('candidates-list').innerHTML=`
+    <div class="loading-state" role="status" aria-label="Cargando candidatos">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Cargando candidatos desde Drive…</p>
+    </div>`;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────
+function renderList() {
+  updateStats();
+  const container=document.getElementById('candidates-list');
+  if (!accessToken) {
+    container.innerHTML=`<div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">☁️</div>
+      <p>Conectate con Google Drive para ver los candidatos.</p>
+      <br><button class="btn btn-google" onclick="document.getElementById('modal-google').hidden=false" style="margin:0 auto;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" aria-hidden="true" style="width:16px;height:16px;"/>
+        Conectar con Google
+      </button></div>`;
+    return;
+  }
+  const sv=document.getElementById('search-input').value.toLowerCase().trim();
+  const fs=document.getElementById('filter-status').value;
+  const filtered=candidates.filter(c=>(!sv||c.nombre.toLowerCase().includes(sv))&&(!fs||c.estado===fs));
+  if (filtered.length===0) {
+    container.innerHTML=`<div class="empty-state" role="status"><div class="empty-icon" aria-hidden="true">📋</div><p>${candidates.length===0?'Todavía no hay candidatos registrados.':'Ningún candidato coincide con los filtros aplicados.'}</p></div>`;
+    return;
+  }
+  container.innerHTML=filtered.map((c,i)=>{
+    const isExp=expanded.has(c.id);
+    const notes=c.thirdPartyNotes||[];
+    const notesHTML=notes.length
+      ?notes.map(n=>`<div class="note-entry"><div class="note-entry-meta">${esc(n.author)} — ${esc(n.date)}</div><div class="note-entry-text">${esc(n.text)}</div></div>`).join('')
+      :`<p style="font-size:12px;color:var(--white-muted);margin-bottom:10px;">Sin notas externas todavía.</p>`;
+    const cvHTML=c.cvUrl
+      ?`<div class="info-block"><span class="info-lbl">Currículum</span><a class="pdf-link" href="${esc(c.cvUrl)}" target="_blank" rel="noopener" aria-label="Ver currículum de ${esc(c.nombre)} en Google Drive">📄 ${esc(c.cvName||'Ver CV')}</a></div>`
+      :'';
+    const adminHTML=isAdmin
+      ?`<div class="card-actions"><button class="btn btn-secondary btn-sm" onclick="openForm('${c.id}')" aria-label="Editar candidato ${esc(c.nombre)}">Editar</button><button class="btn btn-danger btn-sm" onclick="askDelete('${c.id}')" aria-label="Eliminar candidato ${esc(c.nombre)}">Eliminar</button></div>`
+      :'';
+    return`<article class="c-card${isExp?' is-open':''}" aria-label="Candidato ${esc(c.nombre)}" style="animation-delay:${Math.min(i*40,300)}ms">
+      <button class="c-card-btn" onclick="toggleCard('${c.id}')" aria-expanded="${isExp}" aria-controls="body-${c.id}" aria-label="${esc(c.nombre)}, ${sLabel(c.estado)}, ${esc(c.localidad)}. ${isExp?'Contraer':'Expandir'} detalle.">
+        <div class="c-card-identity">
+          <div class="avatar" aria-hidden="true">${esc(initials(c.nombre))}</div>
+          <div><div class="c-name">${esc(c.nombre)}</div>
+          <div class="c-meta"><span>📍 ${esc(c.localidad)}</span><span>📅 ${fDate(c.fecha)}</span><span>📞 ${esc(c.telefono)}</span></div></div>
+        </div>
+        <div class="c-card-right"><span class="sbadge ${sClass(c.estado)}" aria-label="Estado: ${sLabel(c.estado)}">${sLabel(c.estado)}</span><span class="chevron" aria-hidden="true">▼</span></div>
+      </button>
+      <div class="c-card-body" id="body-${c.id}" ${isExp?'':'hidden'}>
+        <div class="info-grid">
+          <div class="info-block"><span class="info-lbl">Disponibilidad en formulario</span><span class="info-val">${esc(c.dispForm)||'—'}</span></div>
+          <div class="info-block"><span class="info-lbl">Disponibilidad en entrevista</span><span class="info-val">${esc(c.dispLlamada)||'—'}</span></div>
+          ${c.dispDetalle?`<div class="info-block" style="grid-column:1/-1"><span class="info-lbl">Aclaración</span><span class="info-val">${esc(c.dispDetalle)}</span></div>`:''}
+          ${cvHTML}
+        </div>
+        ${c.notas?`<div class="info-block" style="margin-bottom:18px;"><span class="info-lbl">Notas de la entrevista</span><div class="info-val nota-box">${esc(c.notas)}</div></div>`:''}
+        <hr class="divider">
+        <div class="ext-notes" aria-label="Notas de supervisoras y líderes de área">
+          <h4>Notas externas</h4>${notesHTML}
+          <div class="add-note">
+            <label for="note-au-${c.id}" style="font-size:10px;color:var(--white-muted);display:block;margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Tu nombre (opcional)</label>
+            <input type="text" id="note-au-${c.id}" placeholder="Ej: María García" aria-label="Tu nombre para identificar la nota"/>
+            <textarea id="note-ta-${c.id}" placeholder="Agregá tu observación sobre este candidato…" aria-label="Nota sobre ${esc(c.nombre)}"></textarea>
+            <button class="btn btn-secondary btn-sm" onclick="addNote('${c.id}')" aria-label="Agregar nota sobre ${esc(c.nombre)}">Agregar nota</button>
+          </div>
+        </div>
+        ${adminHTML}
+        <p class="modified-date">Última modificación: ${fMod(c.modified)}</p>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  document.getElementById('modal-google').hidden = false;
+  renderList();
+});
+</script>
+</body>
+</html>
