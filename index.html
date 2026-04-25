@@ -490,6 +490,9 @@ async function loadFromDrive() {
     setDriveStatus('error', 'Error de conexión');
     showToast('No se pudieron cargar los datos desde Drive.', 'error');
   }
+  // Nunca mostrar el botón de agregar al conectar con Google.
+  // Solo se habilita si además se ingresó la contraseña de administrador.
+  document.getElementById('add-btn').hidden = true;
   renderList();
 }
 
@@ -584,6 +587,7 @@ document.getElementById('modal-confirm').addEventListener('keydown',e=>{if(e.key
 // ── FORMULARIO ─────────────────────────────────────────────────
 function openForm(id=null) {
   if (!accessToken) { showToast('Primero conectate con Google Drive.', 'error'); return; }
+  if (!isAdmin) { showToast('Necesitás ingresar como administrador para esta acción.', 'error'); return; }
   playSound('sweep'); editingId=id;
   const cvStatus=document.getElementById('f-cv-status');
   document.getElementById('form-title').textContent = id ? 'Editar candidato' : 'Nuevo candidato';
